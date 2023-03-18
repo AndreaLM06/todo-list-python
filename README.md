@@ -1,8 +1,22 @@
 # Todo List Python Application
 
+[![fr](https://img.shields.io/badge/lang-fr-blue.svg)](https://github.com/AndreaLM06/todo-list-python/blob/main/README.fr.md)
+
 This is a simple Todo List application written in Python using the PySide6 library. The application allows you to add, edit, and remove tasks, as well as filter and sort them based on various criteria.
 
 ![Todo List App Screenshot](./screenshot.png)
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Creating an Executable](#creating-an-executable)
+- [Running the Application](#running-the-application)
+- [Application Structure](#application-structure)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
@@ -34,7 +48,7 @@ To create an executable of the Todo List application, follow these steps:
 #### Run the following command to create an executable:
 
 ```bash
-pyinstaller --onefile --windowed --icon=todo_list.ico main.py
+pyinstaller --onefile --windowed --icon=images/todo_list.ico src/main.py
 ```
 
 ---
