@@ -1,4 +1,4 @@
-from calendar import CalendarPage
+from calendar_page import CalendarPage
 
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QStandardItemModel, QStandardItem
@@ -53,6 +53,11 @@ class TodoApp(QMainWindow):
         self.todo_model.rowsRemoved.connect(self.task_moved)
         self.done_model.rowsInserted.connect(self.task_moved)
         self.done_model.rowsRemoved.connect(self.task_moved)
+
+        self.calendar_page = CalendarPage(self.conn)
+        self.calendar_page.page_loaded.connect(self.calendar_page.load_tasks)
+
+        self.calendar_page.page_loaded.connect(self.update_calendar)
 
     def init_ui(self):
         self.resize(800, 600)
@@ -134,17 +139,20 @@ class TodoApp(QMainWindow):
         self.todo_page = QWidget()
         self.todo_page.setLayout(main_layout)
 
-        self.calendar_page = CalendarPage(self.cursor)
+        self.init_db()
+
+        self.calendar_page = CalendarPage(self.conn)
+        self.calendar_page.load_tasks()
 
         self.stacked_widget.addWidget(self.todo_page)
         self.stacked_widget.addWidget(self.calendar_page)
 
         self.setCentralWidget(self.stacked_widget)
 
-        self.switch_page_button = QPushButton("Changer de page")
+        self.switch_page_button = QPushButton("Changer de page (Calendrier)")
         self.switch_page_button.clicked.connect(self.switch_page)
 
-        self.calendar_page.back_to_list_requested.connect(self.switch_page)
+        self.calendar_page.page_loaded.connect(self.switch_page)
 
         main_layout.addWidget(self.switch_page_button)
 
@@ -160,7 +168,6 @@ class TodoApp(QMainWindow):
         Returns:
             None
         """
-        # Update the task status in the database
         sender = self.sender()
         if sender == self.todo_model:
             new_status = "todo"
@@ -280,7 +287,9 @@ class TodoApp(QMainWindow):
                 (title, description, end_date, 'todo'))
             self.conn.commit()
 
-            self.calendar.add_task(title, QDate.fromString(end_date, "dd-MM-yy"))
+            end_date_qdate = QDate.fromString(end_date, "dd-MM-yy")
+            self.calendar_page.add_task(title, end_date_qdate)
+        self.update_calendar()
 
     def remove_task(self):
         """
@@ -306,6 +315,7 @@ class TodoApp(QMainWindow):
             self.cursor.execute("DELETE FROM tasks WHERE task = ? AND status = ?", (task, 'done'))
             self.conn.commit()
             self.done_model.removeRow(index.row())
+        self.update_calendar()
 
     def edit_task(self):
         """
@@ -335,6 +345,7 @@ class TodoApp(QMainWindow):
             end_date = get_dates_from_item(self.todo_model.itemFromIndex(index).text())
             item = QStandardItem(f"{new_task}, ({end_date})")
             self.todo_model.setItem(index.row(), item)
+        self.update_calendar()
 
     def init_db(self):
         """
@@ -442,7 +453,8 @@ class TodoApp(QMainWindow):
             self.switch_page_button.setText("Changer de page (Todo List)")
 
     def update_calendar(self):
-        self.calendar_page.calendar.load_tasks(self.cursor)
+        self.calendar_page.load_tasks()
+        self.calendar_page.calendar.updateCells()
 
 
 def get_details_from_item(item_text):
