@@ -8,7 +8,17 @@ from datetime import datetime
 
 
 class TodoApp(QMainWindow):
+
     def __init__(self):
+        """
+        Initialize the main window
+
+        Args:
+            None
+
+        Returns:
+            None    
+        """
         super().__init__()
 
         self.sort_by_end_date_radio = None
@@ -40,7 +50,17 @@ class TodoApp(QMainWindow):
         self.init_db()
 
     def init_ui(self):
-        self.setWindowTitle("Todo List")
+        """
+        Initialize the UI
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        self.resize(800, 600)
+        self.setWindowTitle("TaskMaster")
 
         main_layout = QVBoxLayout()
 
@@ -122,6 +142,15 @@ class TodoApp(QMainWindow):
         self.todo_list.doubleClicked.connect(self.move_to_done)
 
     def show_add_task_dialog(self):
+        """
+        Show the add task dialog
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         dialog = QDialog(self)
         dialog.setWindowTitle("Ajouter une tâche")
 
@@ -171,6 +200,18 @@ class TodoApp(QMainWindow):
             self.add_task(title, description, end_date, urgent)
 
     def add_task(self, title, description, end_date, urgent):
+        """
+        Add a task to the To Do list
+
+        Args:
+            title (str): The title of the task
+            description (str): The description of the task
+            end_date (str): The end date of the task
+            urgent (bool): True if the task is urgent, False otherwise
+
+        Returns:
+            None
+        """
         start_date = self.start_date_value.date().toString("dd-MM-yy")
         if title:
             item = QStandardItem(f"{title} (Ajouté le {start_date}, fin prévue le {end_date})")
@@ -185,7 +226,15 @@ class TodoApp(QMainWindow):
             self.conn.commit()
 
     def remove_task(self):
-        # Remove the selected task from the To Do list
+        """
+        Remove the selected task from the To Do list or the Done list
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         index = self.todo_list.currentIndex()
         if index.isValid():
             task = self.todo_model.itemFromIndex(index).text().split(" (Ajouté le ")[0]
@@ -202,6 +251,15 @@ class TodoApp(QMainWindow):
             self.done_model.removeRow(index.row())
 
     def move_to_done(self, index):
+        """
+        Move the selected task from the To Do list to the Done list
+
+        Args:
+            index (QModelIndex): The index of the selected task
+
+        Returns:
+            None
+        """
         if index.isValid():
             item = self.todo_model.itemFromIndex(index).clone()
             self.todo_model.removeRow(index.row())
@@ -212,6 +270,15 @@ class TodoApp(QMainWindow):
             self.conn.commit()
 
     def edit_task(self):
+        """
+        Edit the selected task
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         index = self.todo_list.currentIndex()
         if not index.isValid():
             QMessageBox.warning(self, "Avertissement", "Veuillez sélectionner une tâche à modifier.")
@@ -231,6 +298,15 @@ class TodoApp(QMainWindow):
             self.todo_model.setItem(index.row(), item)
 
     def show_filter_and_sort_dialog(self):
+        """
+        Show the filter and sort dialog
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         dialog = QDialog(self)
         dialog.setWindowTitle("Filtrer et trier")
 
@@ -284,12 +360,39 @@ class TodoApp(QMainWindow):
             self.load_tasks()
 
     def set_filter_option(self, option):
+        """
+        Set the filter option
+
+        Args:
+            option (str): The filter option
+
+        Returns:
+            None
+        """
         self.filter_option = option
 
     def set_sort_option(self, option):
+        """
+        Set the sort option
+
+        Args:
+            option (str): The sort option
+
+        Returns:
+            None
+        """
         self.sort_option = option
 
     def reset_filters(self):
+        """
+        Reset the filters and sort options
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.filter_option = None
         self.sort_option = None
 
@@ -299,9 +402,27 @@ class TodoApp(QMainWindow):
         self.sort_by_end_date_radio.setChecked(False)
 
     def apply_filter_and_sort(self):
+        """
+        Apply the filter and sort options
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.load_tasks(self.filter_option, self.sort_option)
 
     def init_db(self):
+        """
+        Initialize the database
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.conn = sqlite3.connect("todo.db")
         self.cursor = self.conn.cursor()
 
@@ -317,6 +438,16 @@ class TodoApp(QMainWindow):
         self.load_tasks()
 
     def load_tasks(self, filter_option=None, sort_option=None):
+        """
+        Load the tasks from the database
+
+        Args:
+            filter_option (str): The filter option
+            sort_option (str): The sort option
+
+        Returns:
+            None
+        """
         query = "SELECT task, start_date, end_date, status FROM tasks"
         params = []
 
@@ -344,10 +475,29 @@ class TodoApp(QMainWindow):
                 self.done_model.appendRow(item)
 
     def set_filter_option(self, option):
+        """
+        Set the filter option
+
+        Args:
+            option (str): The filter option
+
+        Returns:
+            None
+        """
         self.filter_option = option
 
 
 def get_dates_from_item(item_text):
+    """
+    Get the start and end dates from the item text
+
+    Args:
+        item_text (str): The item text
+
+    Returns:
+        start_date (str): The start date
+        end_date (str): The end date
+    """
     start_date = item_text.split(" (Ajouté le ")[1].split(", fin prévue le ")[0]
     end_date = item_text.split(", fin prévue le ")[1].split(")")[0]
     return start_date, end_date
