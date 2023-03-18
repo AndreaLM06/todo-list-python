@@ -6,7 +6,7 @@ Il s'agit d'une application simple de liste de tâches écrite en Python en util
 L'application vous permet d'ajouter, de modifier et de supprimer des tâches, ainsi que de les filtrer et de les trier en
 fonction de divers critères.
 
-![Todo List App Screenshot](./screenshot.png)
+![Todo List App Screenshot](./images/img_pp_TaskMaster.png)
 
 ---
 
