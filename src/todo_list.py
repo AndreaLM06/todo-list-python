@@ -1,8 +1,10 @@
+from calendar import CalendarPage
+
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QPushButton,
-                               QListView, QLabel, QDateEdit, QMessageBox, QInputDialog, QDialog, QGroupBox,
-                               QRadioButton, QDialogButtonBox, QTextEdit, QCheckBox)
+                               QListView, QLabel, QDateEdit, QMessageBox, QInputDialog, QDialog, QDialogButtonBox,
+                               QTextEdit, QStackedWidget)
 import sqlite3
 from datetime import datetime
 
@@ -12,17 +14,13 @@ from task_model import TaskModel
 class TodoApp(QMainWindow):
 
     def __init__(self):
-        """
-        Initialize the main window
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
         super().__init__()
 
+        self.switch_page_button = None
+        self.calendar_page = None
+        self.todo_page = None
+        self.stacked_widget = None
+        self.calendar = None
         self.end_date_input = None
         self.sort_by_end_date_radio = None
         self.show_all_radio = None
@@ -51,16 +49,12 @@ class TodoApp(QMainWindow):
         self.init_ui()
         self.init_db()
 
+        self.todo_model.rowsInserted.connect(self.task_moved)
+        self.todo_model.rowsRemoved.connect(self.task_moved)
+        self.done_model.rowsInserted.connect(self.task_moved)
+        self.done_model.rowsRemoved.connect(self.task_moved)
+
     def init_ui(self):
-        """
-        Initialize the UI
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
         self.resize(800, 600)
         self.setWindowTitle("TaskMaster")
 
@@ -134,6 +128,25 @@ class TodoApp(QMainWindow):
         self.todo_model.rowsRemoved.connect(self.task_moved)
         self.done_model.rowsInserted.connect(self.task_moved)
         self.done_model.rowsRemoved.connect(self.task_moved)
+
+        self.stacked_widget = QStackedWidget()
+
+        self.todo_page = QWidget()
+        self.todo_page.setLayout(main_layout)
+
+        self.calendar_page = CalendarPage(self.cursor)
+
+        self.stacked_widget.addWidget(self.todo_page)
+        self.stacked_widget.addWidget(self.calendar_page)
+
+        self.setCentralWidget(self.stacked_widget)
+
+        self.switch_page_button = QPushButton("Changer de page")
+        self.switch_page_button.clicked.connect(self.switch_page)
+
+        self.calendar_page.back_to_list_requested.connect(self.switch_page)
+
+        main_layout.addWidget(self.switch_page_button)
 
     def task_moved(self, parent, start, end):
         """
@@ -267,6 +280,8 @@ class TodoApp(QMainWindow):
                 (title, description, end_date, 'todo'))
             self.conn.commit()
 
+            self.calendar.add_task(title, QDate.fromString(end_date, "dd-MM-yy"))
+
     def remove_task(self):
         """
         Remove the selected task from the To Do list or the Done list
@@ -350,8 +365,9 @@ class TodoApp(QMainWindow):
         Returns:
             None
         """
-        self.todo_model.clear()
-        self.done_model.clear()
+        if self.todo_model is not None and self.done_model is not None:
+            self.todo_model.clear()
+            self.done_model.clear()
 
         self.cursor.execute("SELECT task, status, end_date FROM tasks")
         tasks = self.cursor.fetchall()
@@ -414,6 +430,19 @@ class TodoApp(QMainWindow):
         self.save_tasks()
         self.conn.close()
         event.accept()
+
+    def switch_page(self):
+        current_index = self.stacked_widget.currentIndex()
+        next_index = (current_index + 1) % self.stacked_widget.count()
+        self.stacked_widget.setCurrentIndex(next_index)
+
+        if next_index == 0:
+            self.switch_page_button.setText("Changer de page (Calendrier)")
+        else:
+            self.switch_page_button.setText("Changer de page (Todo List)")
+
+    def update_calendar(self):
+        self.calendar_page.calendar.load_tasks(self.cursor)
 
 
 def get_details_from_item(item_text):
