@@ -4,7 +4,7 @@
 
 This is a simple Todo List application written in Python using the PySide6 library. The application allows you to add, edit, and remove tasks, as well as filter and sort them based on various criteria.
 
-![Todo List App Screenshot](./screenshot.png)
+![Todo List App Screenshot](./images/img_pp_TaskMaster.png)
 
 ---
 
