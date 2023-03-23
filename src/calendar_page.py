@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QPushButton
 from PySide6.QtWidgets import QCalendarWidget
 from PySide6.QtCore import Qt
 
-from src.custom_calendar_widget import CustomCalendarWidget
+from custom_calendar_widget import CustomCalendarWidget
 
 
 class CalendarPage(QWidget):
