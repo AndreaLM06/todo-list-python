@@ -1,6 +1,6 @@
 from calendar_page import CalendarPage
 
-from PySide6.QtCore import Qt, QDate
+from PySide6.QtCore import Qt, QDate, Signal
 from PySide6.QtGui import QStandardItemModel, QStandardItem
 from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QPushButton,
                                QListView, QLabel, QDateEdit, QMessageBox, QInputDialog, QDialog, QDialogButtonBox,
@@ -12,6 +12,9 @@ from task_model import TaskModel
 
 
 class TodoApp(QMainWindow):
+    task_added = Signal()
+    task_modified = Signal()
+    task_removed = Signal(str, str)
 
     def __init__(self):
         super().__init__()
@@ -53,11 +56,6 @@ class TodoApp(QMainWindow):
         self.todo_model.rowsRemoved.connect(self.task_moved)
         self.done_model.rowsInserted.connect(self.task_moved)
         self.done_model.rowsRemoved.connect(self.task_moved)
-
-        self.calendar_page = CalendarPage(self.conn)
-        self.calendar_page.page_loaded.connect(self.calendar_page.load_tasks)
-
-        self.calendar_page.page_loaded.connect(self.update_calendar)
 
     def init_ui(self):
         self.resize(800, 600)
@@ -140,7 +138,6 @@ class TodoApp(QMainWindow):
         self.todo_page.setLayout(main_layout)
 
         self.init_db()
-
         self.calendar_page = CalendarPage(self.conn)
         self.calendar_page.load_tasks()
 
@@ -153,6 +150,10 @@ class TodoApp(QMainWindow):
         self.switch_page_button.clicked.connect(self.switch_page)
 
         self.calendar_page.page_loaded.connect(self.switch_page)
+
+        self.task_added.connect(self.calendar_page.update_calendar)
+        self.task_modified.connect(self.calendar_page.update_calendar)
+        self.task_removed.connect(self.calendar_page.remove_task)
 
         main_layout.addWidget(self.switch_page_button)
 
@@ -266,7 +267,7 @@ class TodoApp(QMainWindow):
             end_date = end_date_input.date().toString("dd-MM-yy")
             self.add_task(title, description, end_date)
 
-    def add_task(self, title, description, end_date) -> None:
+    def add_task(self, title, description, end_date):
         """
         Add a task to the To Do list
         Args:
@@ -289,7 +290,8 @@ class TodoApp(QMainWindow):
 
             end_date_qdate = QDate.fromString(end_date, "dd-MM-yy")
             self.calendar_page.add_task(title, end_date_qdate)
-        self.update_calendar()
+            self.task_added.emit()
+            self.update_calendar()
 
     def remove_task(self):
         """
@@ -307,15 +309,20 @@ class TodoApp(QMainWindow):
             self.cursor.execute("DELETE FROM tasks WHERE task = ? AND status = ?", (task, 'todo'))
             self.conn.commit()
             self.todo_model.removeRow(index.row())
+            self.update_calendar()
+            end_date = task.split(", (")[1].split(")")[0]
+            self.task_removed.emit(task, end_date)
 
-        # Remove the selected task from the Done list
+            # Remove the selected task from the Done list
         index = self.done_list.currentIndex()
         if index.isValid():
             task = self.done_model.itemFromIndex(index).text().split(" (Ajouté le ")[0]
             self.cursor.execute("DELETE FROM tasks WHERE task = ? AND status = ?", (task, 'done'))
             self.conn.commit()
             self.done_model.removeRow(index.row())
-        self.update_calendar()
+            self.update_calendar()
+            end_date = task.split(", (")[1].split(")")[0]
+            self.task_removed.emit(task, end_date)
 
     def edit_task(self):
         """
@@ -345,6 +352,8 @@ class TodoApp(QMainWindow):
             end_date = get_dates_from_item(self.todo_model.itemFromIndex(index).text())
             item = QStandardItem(f"{new_task}, ({end_date})")
             self.todo_model.setItem(index.row(), item)
+            self.update_calendar()
+            self.task_modified.emit()
         self.update_calendar()
 
     def init_db(self):
@@ -454,7 +463,6 @@ class TodoApp(QMainWindow):
 
     def update_calendar(self):
         self.calendar_page.load_tasks()
-        self.calendar_page.calendar.updateCells()
 
 
 def get_details_from_item(item_text):

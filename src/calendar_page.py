@@ -5,44 +5,30 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QPushButton
 from PySide6.QtWidgets import QCalendarWidget
 from PySide6.QtCore import Qt
 
-
-class CustomCalendarWidget(QCalendarWidget):
-    def __init__(self, tasks, parent=None):
-        super().__init__(parent)
-        self.tasks = tasks
-
-    def paintCell(self, painter, rect, date):
-        super().paintCell(painter, rect, date)
-
-        painter.setPen(Qt.black)
-        painter.drawRect(rect)
-
-        text = self.cell_text(date)
-        if text:
-            painter.setPen(Qt.black)
-            new_rect = rect.adjusted(0, 0, 0, -rect.height() // 2)
-            painter.drawText(new_rect, Qt.AlignLeft | Qt.TextWordWrap, text)
-
-    def cell_text(self, date):
-        task_date = QDate.toString(date, "dd-MM-yy")
-        if task_date in self.tasks:
-            tasks = self.tasks[task_date]
-            task_text = " - ".join(tasks)
-            return task_text
-        else:
-            return ""
+from src.custom_calendar_widget import CustomCalendarWidget
 
 
 class CalendarPage(QWidget):
+    """
+    Classe pour la page du calendrier de l'application
+    """
     page_loaded = Signal()
 
     def __init__(self, conn):
         super().__init__()
+        self.switch_page_button = None
+        self.back_button = None
+        self.calendar = None
+        self.tasks = None
         self.conn = conn
         self.cursor = self.conn.cursor()
         self.init_ui()
 
     def init_ui(self):
+        """
+        Méthode pour initialiser l'interface utilisateur de la page du calendrier
+        :return:
+        """
         layout = QVBoxLayout()
 
         self.load_tasks()
@@ -70,18 +56,20 @@ class CalendarPage(QWidget):
 
         self.setLayout(layout)
 
-        # Connecter le signal clicked du bouton retour à la méthode back_to_list
+        # Connecter le signal clicked du bouton retour directement au signal page_loaded
         self.back_button.clicked.connect(self.page_loaded.emit)
 
         self.switch_page_button = QPushButton("Changer de page (Calendrier)")
+        self.page_loaded.connect(self.on_page_loaded)
 
         # Émettre le signal page_loaded
         self.page_loaded.emit()
 
-    def back_to_list(self):
-        self.parent().switch_page()
-
     def load_tasks(self):
+        """
+        Méthode pour charger les tâches de la base de données
+        :return:
+        """
         self.tasks = {}  # dictionnaire pour stocker les tâches
 
         self.cursor.execute("SELECT task, end_date FROM tasks WHERE status = 'todo'")
@@ -96,6 +84,16 @@ class CalendarPage(QWidget):
             self.tasks[date_str].append(task)
 
     def add_task(self, task, end_date):
+        """
+        Méthode pour ajouter une tâche à la base de données
+
+        Args:
+            task (str): tâche à ajouter
+            end_date (QDate): date de fin de la tâche
+
+        Returns:
+            None
+        """
         text_format = QTextCharFormat()
         text_format.setForeground(Qt.black)
         text_format.setFontWeight(QFont.Bold)
@@ -108,7 +106,61 @@ class CalendarPage(QWidget):
         self.tasks[end_date].append(task)
         self.calendar.tasks = self.tasks
 
+    def remove_task(self, task, end_date):
+        """
+        Méthode pour supprimer une tâche de la base de données
+
+        Args:
+            task (str): tâche à supprimer
+            end_date (QDate): date de fin de la tâche
+
+        Returns:
+            None
+        """
+        title_task = task.split(",")[0]
+        self.delete_task_from_db(title_task)
+        self.tasks[end_date].remove(title_task)
+        if not self.tasks[end_date]:
+            del self.tasks[end_date]
+
+        self.calendar.tasks = self.tasks
+        self.calendar.updateCells()
+
     def update_calendar(self):
+        """
+        Méthode pour mettre à jour le calendrier
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         self.load_tasks()
         self.calendar.tasks = self.tasks
         self.calendar.updateCells()
+
+    def on_page_loaded(self):
+        """
+        Méthode pour mettre à jour le calendrier lorsque la page est chargée
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        self.update_calendar()
+
+    def delete_task_from_db(self, task):
+        """
+        Méthode pour supprimer une tâche de la base de données
+
+        Args:
+            task (str): tâche à supprimer
+
+        Returns:
+            None
+        """
+        self.cursor.execute("DELETE FROM tasks WHERE task = ?", (task,))
+        self.conn.commit()
