@@ -1,6 +1,8 @@
 # Application de liste de tâches Python
 
 [![en](https://img.shields.io/badge/lang-en-white.svg)](https://github.com/AndreaLM06/todo-list-python/blob/main/README.md)
+[![GitHub](https://img.shields.io/github/license/AndreaLM06/todo-list-python)](https://github.com/AndreaLM06/todo-list-python/blob/main/LICENSE)
+
 
 Il s'agit d'une application simple de liste de tâches écrite en Python en utilisant la bibliothèque PySide6.
 L'application vous permet d'ajouter, de modifier et de supprimer des tâches, ainsi que de les filtrer et de les trier en
@@ -35,6 +37,16 @@ fonction de divers critères.
 ---
 
 ## Installation
+
+### Installer Node JS
+
+[![Npm package yearly downloads](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/en/download/current/)
+
+### Installer Python
+
+[![Python](https://img.shields.io/badge/python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
+
+### Installer les dépendances
 
 Avant d'exécuter l'application, assurez-vous d'installer les dépendances requises. Vous pouvez le faire en exécutant la
 commande suivante :

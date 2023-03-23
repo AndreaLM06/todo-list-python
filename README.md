@@ -1,6 +1,7 @@
 # Todo List Python Application
 
 [![fr](https://img.shields.io/badge/lang-fr-blue.svg)](https://github.com/AndreaLM06/todo-list-python/blob/main/README.fr.md)
+[![GitHub](https://img.shields.io/github/license/AndreaLM06/todo-list-python)](https://github.com/AndreaLM06/todo-list-python/blob/main/LICENSE)
 
 This is a simple Todo List application written in Python using the PySide6 library. The application allows you to add, edit, and remove tasks, as well as filter and sort them based on various criteria.
 
@@ -32,6 +33,16 @@ This is a simple Todo List application written in Python using the PySide6 libra
 ---
 
 ## Installation
+
+### Install Node JS
+
+[![Npm package yearly downloads](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/en/download/current/)
+
+### Install Python
+
+[![Python package yearly downloads](https://img.shields.io/badge/python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
+
+### Install packages
 
 Before running the application, make sure to install the required dependencies. You can do this by running the following command:
 
