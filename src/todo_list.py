@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPu
 import sqlite3
 from datetime import datetime
 
+from today_task_page import TodayTaskPage
 from task_model import TaskModel
 
 
@@ -70,19 +71,26 @@ class TodoApp(QMainWindow):
         menubar = QMenuBar(self)
         self.setMenuBar(menubar)
 
-        # Create the menu and add it to the menu bar
-        # menu = QMenu("Navigation", self)
-        # menubar.addMenu(menu)
-
         # Create the TodoList action and add it to the menu
-        todo_list_action = QAction("TodoList", self)
+        todo_list_action = QAction(" Todo List ", self)
         todo_list_action.triggered.connect(self.show_todo_list_page)
         menubar.addAction(todo_list_action)
 
         # Create the Calendar action and add it to the menu
-        calendar_action = QAction("Calendar", self)
+        calendar_action = QAction(" Calendar ", self)
         calendar_action.triggered.connect(self.show_calendar_page)
         menubar.addAction(calendar_action)
+
+        # Create the TodayTask action and add it to the menu
+        today_task_action = QAction(" Task of the day ", self)
+        today_task_action.triggered.connect(self.show_today_task_page)
+        menubar.addAction(today_task_action)
+
+        # Create the Quit action and add it to the menu
+        quit_action = QAction(" Quit ", self)
+        quit_action.setShortcut("Ctrl+Q")
+        quit_action.triggered.connect(self.close)
+        menubar.addAction(quit_action)
 
         self.start_date_value.setDate(datetime.today())
         self.start_date_value.setDisplayFormat("dd-MM-yy")
@@ -123,13 +131,13 @@ class TodoApp(QMainWindow):
         self.add_task_button = QPushButton("Add task")
         main_layout.addWidget(self.add_task_button)
 
-        # Remove Task Button
-        self.remove_task_button = QPushButton("Delete task")
-        main_layout.addWidget(self.remove_task_button)
-
         # Edit Task Button
         self.edit_task_button = QPushButton("Edit task")
         main_layout.addWidget(self.edit_task_button)
+
+        # Remove Task Button
+        self.remove_task_button = QPushButton("Delete task")
+        main_layout.addWidget(self.remove_task_button)
 
         container = QWidget()
         container.setLayout(main_layout)
@@ -141,6 +149,9 @@ class TodoApp(QMainWindow):
 
         self.add_task_button.clicked.disconnect(self.add_task)
         self.add_task_button.clicked.connect(self.show_add_task_dialog)
+
+        self.edit_task_button.clicked.disconnect(self.edit_task)
+        self.edit_task_button.clicked.connect(self.show_edit_task_dialog)
 
         self.todo_model.rowsInserted.connect(self.task_moved)
         self.todo_model.rowsRemoved.connect(self.task_moved)
@@ -156,14 +167,21 @@ class TodoApp(QMainWindow):
         self.calendar_page = CalendarPage(self.conn)
         self.calendar_page.load_tasks()
 
+        self.today_task_page = TodayTaskPage(self.conn)
+        self.today_task_page.load_tasks()
+
         self.stacked_widget.addWidget(self.todo_page)
         self.stacked_widget.addWidget(self.calendar_page)
+        self.stacked_widget.addWidget(self.today_task_page)
 
         self.setCentralWidget(self.stacked_widget)
 
         self.task_added.connect(self.calendar_page.update_calendar)
         self.task_modified.connect(self.calendar_page.update_calendar)
         self.task_removed.connect(self.calendar_page.remove_task)
+
+        self.task_added.connect(self.today_task_page.load_tasks)
+        self.task_modified.connect(self.today_task_page.load_tasks)
 
     def task_moved(self, parent, start, end):
         """
@@ -275,6 +293,71 @@ class TodoApp(QMainWindow):
             end_date = end_date_input.date().toString("dd-MM-yy")
             self.add_task(title, description, end_date)
 
+    def show_edit_task_dialog(self):
+        """
+        Show the edit task dialog
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+        index = self.todo_list.currentIndex()
+        task = self.todo_model.itemFromIndex(index).text()
+        title = task.split(", ")[0]
+        end_task = task.split(", (")[1].split(")")[0] #25-03-23
+        # mais on veut mette la date au format 25/03/2023
+        end_task = QDate.fromString(end_task, "dd-MM-yy") # 25-03-23
+        end_task = end_task.addYears(100) # 25-03-23
+        print(end_task) # PySide6.QtCore.QDate(1923, 3, 25)
+
+        print(task) # test2, (25-03-23)
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Modifier une tâche")
+
+        vbox = QVBoxLayout()
+
+        title_label = QLabel("Titre de la tâche :")
+        vbox.addWidget(title_label)
+
+        title_input = QLineEdit()
+        title_input.setText(title)
+        vbox.addWidget(title_input)
+
+        description_label = QLabel("Description :")
+        vbox.addWidget(description_label)
+
+        description_input = QTextEdit()
+        vbox.addWidget(description_input)
+
+        end_date_label = QLabel("Date de fin prévisionnelle (dd-mm-yyyy) :")
+
+        end_date_input = QDateEdit()
+        end_date_input.setCalendarPopup(True)
+
+        today = QDate.currentDate()
+        end_date_input.setDate(end_task)
+
+        vbox.addWidget(end_date_label)
+        vbox.addWidget(end_date_input)
+
+        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        vbox.addWidget(button_box)
+
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+
+        dialog.setLayout(vbox)
+
+        result = dialog.exec()
+
+        if result == QDialog.Accepted:
+            title = title_input.text()
+            description = description_input.toPlainText()
+            end_date = end_date_input.date().toString("dd-MM-yy")
+            self.add_task(title, description, end_date)
+
     def add_task(self, title, description, end_date):
         """
         Add a task to the To Do list
@@ -300,6 +383,7 @@ class TodoApp(QMainWindow):
             self.calendar_page.add_task(title, end_date_qdate)
             self.task_added.emit()
             self.update_calendar()
+            self.update_today_task()
 
     def remove_task(self):
         """
@@ -317,7 +401,6 @@ class TodoApp(QMainWindow):
             self.cursor.execute("DELETE FROM tasks WHERE task = ? AND status = ?", (task, 'todo'))
             self.conn.commit()
             self.todo_model.removeRow(index.row())
-            self.update_calendar()
             end_date = task.split(", (")[1].split(")")[0]
             self.task_removed.emit(task, end_date)
 
@@ -328,9 +411,11 @@ class TodoApp(QMainWindow):
             self.cursor.execute("DELETE FROM tasks WHERE task = ? AND status = ?", (task, 'done'))
             self.conn.commit()
             self.done_model.removeRow(index.row())
-            self.update_calendar()
+            self.update_today_task()
             end_date = task.split(", (")[1].split(")")[0]
             self.task_removed.emit(task, end_date)
+        self.update_calendar()
+        self.today_task_page.load_tasks()
 
     def edit_task(self):
         """
@@ -360,9 +445,9 @@ class TodoApp(QMainWindow):
             end_date = get_dates_from_item(self.todo_model.itemFromIndex(index).text())
             item = QStandardItem(f"{new_task}, ({end_date})")
             self.todo_model.setItem(index.row(), item)
-            self.update_calendar()
             self.task_modified.emit()
         self.update_calendar()
+        self.update_today_task()
 
     def init_db(self):
         """
@@ -471,11 +556,17 @@ class TodoApp(QMainWindow):
     def update_calendar(self):
         self.calendar_page.load_tasks()
 
+    def update_today_task(self):
+        self.today_task_page.load_tasks()
+
     def show_todo_list_page(self):
         self.stacked_widget.setCurrentIndex(0)
 
     def show_calendar_page(self):
         self.stacked_widget.setCurrentIndex(1)
+
+    def show_today_task_page(self):
+        self.stacked_widget.setCurrentIndex(2)
 
 
 def get_details_from_item(item_text):
