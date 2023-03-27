@@ -16,8 +16,6 @@ class CalendarPage(QWidget):
 
     def __init__(self, conn):
         super().__init__()
-        self.switch_page_button = None
-        self.back_button = None
         self.calendar = None
         self.tasks = None
         self.conn = conn
@@ -51,15 +49,8 @@ class CalendarPage(QWidget):
 
         layout.addWidget(self.calendar)
 
-        self.back_button = QPushButton("Changer de page (ToDo List)")
-        layout.addWidget(self.back_button)
-
         self.setLayout(layout)
 
-        # Connecter le signal clicked du bouton retour directement au signal page_loaded
-        self.back_button.clicked.connect(self.page_loaded.emit)
-
-        self.switch_page_button = QPushButton("Changer de page (Calendrier)")
         self.page_loaded.connect(self.on_page_loaded)
 
         # Émettre le signal page_loaded

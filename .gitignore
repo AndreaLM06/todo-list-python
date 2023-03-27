@@ -4,3 +4,4 @@ todo.db
 dist
 build
 main.spec
+venv

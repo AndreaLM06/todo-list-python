@@ -1,10 +1,10 @@
 from calendar_page import CalendarPage
 
 from PySide6.QtCore import Qt, QDate, Signal
-from PySide6.QtGui import QStandardItemModel, QStandardItem
-from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit, QPushButton,
+from PySide6.QtGui import QStandardItemModel, QStandardItem, QAction
+from PySide6.QtWidgets import (QMainWindow, QVBoxLayout, QWidget, QLineEdit, QPushButton,
                                QListView, QLabel, QDateEdit, QMessageBox, QInputDialog, QDialog, QDialogButtonBox,
-                               QTextEdit, QStackedWidget)
+                               QTextEdit, QStackedWidget, QMenuBar)
 import sqlite3
 from datetime import datetime
 
@@ -19,7 +19,8 @@ class TodoApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.switch_page_button = None
+        self.switch_to_calendar_action = None
+        self.switch_to_todo_action = None
         self.calendar_page = None
         self.todo_page = None
         self.stacked_widget = None
@@ -62,24 +63,37 @@ class TodoApp(QMainWindow):
         self.setWindowTitle("TaskMaster")
 
         main_layout = QVBoxLayout()
+        lists_layout = QVBoxLayout()
+
+        # Menu Bar
+        # Create the menu bar
+        menubar = QMenuBar(self)
+        self.setMenuBar(menubar)
+
+        # Create the menu and add it to the menu bar
+        # menu = QMenu("Navigation", self)
+        # menubar.addMenu(menu)
+
+        # Create the TodoList action and add it to the menu
+        todo_list_action = QAction("TodoList", self)
+        todo_list_action.triggered.connect(self.show_todo_list_page)
+        menubar.addAction(todo_list_action)
+
+        # Create the Calendar action and add it to the menu
+        calendar_action = QAction("Calendar", self)
+        calendar_action.triggered.connect(self.show_calendar_page)
+        menubar.addAction(calendar_action)
 
         self.start_date_value.setDate(datetime.today())
         self.start_date_value.setDisplayFormat("dd-MM-yy")
-
-        self.end_date = QLabel("Date de fin prévisionnelle (dd-mm-yy) :")
+        self.end_date = QLabel("Estimated end date (dd-mm-yy) :")
         self.end_date_value.setDate(self.start_date_value.date().addDays(1))
         self.end_date_value.setDisplayFormat("dd-MM-yy")
-
-        self.add_task_button = QPushButton("Ajouter tâche")
-        main_layout.addWidget(self.add_task_button)
-
-        lists_layout = QHBoxLayout()
 
         self.todo_model = TaskModel()
         self.done_model = TaskModel()
 
         # To Do List
-        todo_layout = QVBoxLayout()
         self.todo_label = QLabel("To Do")
         self.todo_label.setAlignment(Qt.AlignHCenter)
         self.todo_list = QListView()
@@ -88,12 +102,10 @@ class TodoApp(QMainWindow):
         self.todo_list.setAcceptDrops(True)
         self.todo_list.setDropIndicatorShown(True)
         self.todo_list.setDefaultDropAction(Qt.MoveAction)
-        todo_layout.addWidget(self.todo_label)
-        todo_layout.addWidget(self.todo_list)
-        lists_layout.addLayout(todo_layout)
+        lists_layout.addWidget(self.todo_label)
+        lists_layout.addWidget(self.todo_list)
 
         # Done List
-        done_layout = QVBoxLayout()
         self.done_label = QLabel("Done")
         self.done_label.setAlignment(Qt.AlignHCenter)
         self.done_list = QListView()
@@ -102,18 +114,21 @@ class TodoApp(QMainWindow):
         self.done_list.setAcceptDrops(True)
         self.done_list.setDropIndicatorShown(True)
         self.done_list.setDefaultDropAction(Qt.MoveAction)
-        done_layout.addWidget(self.done_label)
-        done_layout.addWidget(self.done_list)
-        lists_layout.addLayout(done_layout)
+        lists_layout.addWidget(self.done_label)
+        lists_layout.addWidget(self.done_list)
 
         main_layout.addLayout(lists_layout)
 
+        # Add Task Button
+        self.add_task_button = QPushButton("Add task")
+        main_layout.addWidget(self.add_task_button)
+
         # Remove Task Button
-        self.remove_task_button = QPushButton("Supprimer tâche")
+        self.remove_task_button = QPushButton("Delete task")
         main_layout.addWidget(self.remove_task_button)
 
         # Edit Task Button
-        self.edit_task_button = QPushButton("Modifier tâche")
+        self.edit_task_button = QPushButton("Edit task")
         main_layout.addWidget(self.edit_task_button)
 
         container = QWidget()
@@ -146,16 +161,9 @@ class TodoApp(QMainWindow):
 
         self.setCentralWidget(self.stacked_widget)
 
-        self.switch_page_button = QPushButton("Changer de page (Calendrier)")
-        self.switch_page_button.clicked.connect(self.switch_page)
-
-        self.calendar_page.page_loaded.connect(self.switch_page)
-
         self.task_added.connect(self.calendar_page.update_calendar)
         self.task_modified.connect(self.calendar_page.update_calendar)
         self.task_removed.connect(self.calendar_page.remove_task)
-
-        main_layout.addWidget(self.switch_page_button)
 
     def task_moved(self, parent, start, end):
         """
@@ -417,6 +425,15 @@ class TodoApp(QMainWindow):
         self.filter_option = option
 
     def save_tasks(self):
+        """
+        Save tasks from the ToDo and Done lists to the database
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
         # Delete all tasks from the database
         self.cursor.execute("DELETE FROM tasks")
 
@@ -451,18 +468,14 @@ class TodoApp(QMainWindow):
         self.conn.close()
         event.accept()
 
-    def switch_page(self):
-        current_index = self.stacked_widget.currentIndex()
-        next_index = (current_index + 1) % self.stacked_widget.count()
-        self.stacked_widget.setCurrentIndex(next_index)
-
-        if next_index == 0:
-            self.switch_page_button.setText("Changer de page (Calendrier)")
-        else:
-            self.switch_page_button.setText("Changer de page (Todo List)")
-
     def update_calendar(self):
         self.calendar_page.load_tasks()
+
+    def show_todo_list_page(self):
+        self.stacked_widget.setCurrentIndex(0)
+
+    def show_calendar_page(self):
+        self.stacked_widget.setCurrentIndex(1)
 
 
 def get_details_from_item(item_text):
