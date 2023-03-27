@@ -23,12 +23,8 @@ This is a simple Todo List application written in Python using the PySide6 libra
 
 ## Features
 
-- Add tasks with a title, description, start date, end date, and an optional urgency flag
-- Edit existing tasks
-- Remove tasks from the To-Do or Done lists
-- Double-click tasks in the To-Do list to mark them as done
-- Filter tasks by upcoming due dates
-- Sort tasks by start date or end date
+- `Add`, `edit`, and `remove` tasks
+- Switch pages to view **Tasks** and **Calendar**
 
 ---
 
