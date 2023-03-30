@@ -419,6 +419,7 @@ class TodoApp(QMainWindow):
             self.task_removed.emit(task, end_date)
         self.update_calendar()
         self.today_task_page.load_tasks()
+        self.calendar_page.update_calendar()
 
     def edit_task(self, title, description, end_date):
         """

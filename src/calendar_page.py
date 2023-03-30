@@ -110,7 +110,6 @@ class CalendarPage(QWidget):
         """
         title_task = task.split(",")[0]
         self.delete_task_from_db(title_task)
-        # self.tasks[end_date].remove(title_task)
         if not self.tasks[end_date]:
             del self.tasks[end_date]
 
