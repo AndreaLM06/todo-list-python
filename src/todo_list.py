@@ -306,13 +306,14 @@ class TodoApp(QMainWindow):
         index = self.todo_list.currentIndex()
         task = self.todo_model.itemFromIndex(index).text()
         title = task.split(", ")[0]
-        end_task = task.split(", (")[1].split(")")[0] #25-03-23
+        description = self.cursor.execute("SELECT description FROM tasks WHERE task = ?", (title,)).fetchone()[0]
+        end_task = task.split(", (")[1].split(")")[0]  # 25-03-23
         # mais on veut mette la date au format 25/03/2023
-        end_task = QDate.fromString(end_task, "dd-MM-yy") # 25-03-23
-        end_task = end_task.addYears(100) # 25-03-23
-        print(end_task) # PySide6.QtCore.QDate(1923, 3, 25)
+        end_task = QDate.fromString(end_task, "dd-MM-yy")  # 25-03-23
+        end_task = end_task.addYears(100)  # 25-03-23
+        print(end_task)  # PySide6.QtCore.QDate(1923, 3, 25)
 
-        print(task) # test2, (25-03-23)
+        print(task)  # test2, (25-03-23)
         dialog = QDialog(self)
         dialog.setWindowTitle("Modifier une tâche")
 
@@ -329,6 +330,7 @@ class TodoApp(QMainWindow):
         vbox.addWidget(description_label)
 
         description_input = QTextEdit()
+        description_input.setText(description)
         vbox.addWidget(description_input)
 
         end_date_label = QLabel("Date de fin prévisionnelle (dd-mm-yyyy) :")
@@ -356,7 +358,7 @@ class TodoApp(QMainWindow):
             title = title_input.text()
             description = description_input.toPlainText()
             end_date = end_date_input.date().toString("dd-MM-yy")
-            self.add_task(title, description, end_date)
+            self.edit_task(title, description, end_date)
 
     def add_task(self, title, description, end_date):
         """
@@ -401,6 +403,7 @@ class TodoApp(QMainWindow):
             self.cursor.execute("DELETE FROM tasks WHERE task = ? AND status = ?", (task, 'todo'))
             self.conn.commit()
             self.todo_model.removeRow(index.row())
+            self.update_today_task()
             end_date = task.split(", (")[1].split(")")[0]
             self.task_removed.emit(task, end_date)
 
@@ -417,9 +420,9 @@ class TodoApp(QMainWindow):
         self.update_calendar()
         self.today_task_page.load_tasks()
 
-    def edit_task(self):
+    def edit_task(self, title, description, end_date):
         """
-        Edit the selected task
+        Edit a task from the To Do list
 
         Args:
             None
@@ -428,24 +431,21 @@ class TodoApp(QMainWindow):
             None
         """
         index = self.todo_list.currentIndex()
-        if not index.isValid():
-            QMessageBox.warning(self, "Avertissement", "Veuillez sélectionner une tâche à modifier.")
-            return
+        print(index)
+        if index.isValid():
+            task_index = self.todo_model.itemFromIndex(index).text().split(" (Ajouté le ")[0]
+            print(task_index)
+            title_task = task_index.split(", ")[0]
 
-        task = self.todo_model.itemFromIndex(index).text().split(", (")[0]
-        new_task, ok = QInputDialog.getText(self, "Modifier tâche", "Entrez le nouveau nom de la tâche :",
-                                            QLineEdit.Normal, task)
-        if ok and new_task != '':
-            # Update task in the database
-            self.cursor.execute("UPDATE tasks SET task = ? WHERE task = ? AND status = ?", (new_task, task, 'todo'))
+            # task_select = self.cursor.execute("SELECT * FROM tasks WHERE task = ? AND status = ?", (title_task, 'todo')).fetchone()
+
+            self.cursor.execute(
+                "UPDATE tasks SET task = ?, description = ?, end_date = ? WHERE task = ? AND status = ?",
+                (title, description, end_date, title_task, 'todo'))
             self.conn.commit()
 
-            # Update task in the model
-
-            end_date = get_dates_from_item(self.todo_model.itemFromIndex(index).text())
-            item = QStandardItem(f"{new_task}, ({end_date})")
-            self.todo_model.setItem(index.row(), item)
-            self.task_modified.emit()
+            self.todo_model.itemFromIndex(index).setText(f"{title}, ({end_date})")
+        self.task_modified.emit()
         self.update_calendar()
         self.update_today_task()
 
